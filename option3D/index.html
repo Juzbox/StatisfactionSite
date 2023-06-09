@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>OBJ Viewer with Lighting</title>
+  <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+</head>
+<body>
+  <a-scene>
+    <a-assets>
+      <a-asset-item id="obj-model" src="assets/Rock001.obj"></a-asset-item>
+      <!-- <a-asset-item id="obj-mtl" src="assets/rott02.mtl"></a-asset-item> -->
+    </a-assets>
+
+    <a-entity position="0 1.6 0">
+      <a-camera></a-camera>
+    </a-entity>
+
+    <a-entity obj-model="obj: #obj-model"></a-entity>
+
+    <a-light type="ambient" color="#888"></a-light>
+    <a-light type="directional" position="2 4 3" intensity="0.8" target="#obj-model"></a-light>
+  </a-scene>
+</body>
+</html>

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Movable Images</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .image {
+      position: absolute;
+      display: none;
+      cursor: move;
+      /* mix-blend-mode: multiply; */
+    }
+
+
+
+    #button {
+        z-index: 9999;
+      padding: 15px 25px;
+      font-size: 24px;
+      text-align: center;
+      cursor: pointer;
+        border-radius: 50px; /* Rounded corners */
+      outline: none;
+      color: #fff;
+      background-color: #04AA6D;
+      border: none;
+      /* border-radius: 15px; */
+      box-shadow: 0 6px #999;
+    }
+
+    #button:hover {background-color: #3e8e41}
+
+    #button:active {
+      background-color: #3e8e41;
+      box-shadow: 0 5px #666;
+      transform: translateY(4px);
+    }
+
+
+    #clickCount {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      color: #007bff;
+      font-weight: bold;
+      font-size: 24px;
+    }
+  </style>
+</head>
+<body>
+  <img id="image1" class="image" src="assets/001_06PCD1.gif" alt="Image 1">
+  <img id="image2" class="image" src="assets/002_Banner-Gif.gif" alt="Image 2">
+  <img id="image3" class="image" src="assets/003_cyborgTest.png" alt="Image 3">
+  <img id="image4" class="image" src="assets/004_cityMaker.gif" alt="Image 4">
+    <img id="image5" class="image" src="assets/005_drone.gif" alt="Image 5">
+      <img id="image6" class="image" src="assets/006_eyesNOPE.gif" alt="Image 6">
+        <img id="image7" class="image" src="assets/007_factory.png" alt="Image 7">
+          <img id="image8" class="image" src="assets/008_founder.gif" alt="Image 8">
+            <img id="image9" class="image" src="assets/009_IMG2.png" alt="Image 9">
+<img id="image10" class="image" src="assets/010_AmPsy.gif" alt="Image 10">
+<img id="image11" class="image" src="assets/011_traffic.jpg" alt="Image 9">
+<img id="image12" class="image" src="assets/012_phonePNG.png" alt="Image 9">
+<img id="image13" class="image" src="assets/013_PNL.gif" alt="Image 9">
+<img id="image14" class="image" src="assets/014_toolkit.png" alt="Image 9">
+<img id="image15" class="image" src="assets/015_wood.gif" alt="Image 9">
+
+
+  <button id="button">👍</button>
+
+  <div id="clickCount">Level 0</div>
+
+  <script>
+    function dragElement(element) {
+      let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+      let zIndex = 1;
+      element.style.zIndex = zIndex;
+      element.addEventListener('mousedown', dragMouseDown);
+
+      function dragMouseDown(e) {
+        e = e || window.event;
+        e.preventDefault();
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        document.addEventListener('mouseup', closeDragElement);
+        document.addEventListener('mousemove', elementDrag, { passive: false });
+        element.style.zIndex = ++zIndex;
+      }
+
+      function elementDrag(e) {
+        e = e || window.event;
+        e.preventDefault();
+        pos1 = pos3 - e.clientX;
+        pos2 = pos4 - e.clientY;
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        element.style.top = `${element.offsetTop - pos2}px`;
+        element.style.left = `${element.offsetLeft - pos1}px`;
+      }
+
+      function closeDragElement() {
+        document.removeEventListener('mouseup', closeDragElement);
+        document.removeEventListener('mousemove', elementDrag);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', function() {
+      const images = document.getElementsByClassName("image");
+      let zIndex = images.length;
+      let currentIndex = 0;
+        let nextIndex = 0;
+      let prevIndex = images.length - 1;
+      let clickCount = 0;
+
+      for (let i = 0; i < images.length; i++) {
+        dragElement(images[i]);
+        images[i].style.display = 'block';
+        images[i].style.zIndex = zIndex;
+        zIndex--;
+      }
+
+      const button = document.getElementById("button");
+      const clickCountElement = document.getElementById("clickCount");
+
+      button.addEventListener('click', function() {
+
+for (let i = 0; i < images.length; i++) {
+        images[i].style.display = 'none';
+        images[prevIndex].style.display = 'none';
+}
+
+        let newIndexes = getRandomIndexes(images.length, currentIndex);
+        currentIndex = newIndexes[0];
+        prevIndex = newIndexes[1];
+nextIndex = newIndexes[2];
+
+        images[currentIndex].style.display = 'block';
+        images[prevIndex].style.display = 'block';
+          images[nextIndex].style.display = 'block';
+
+        clickCount++;
+        clickCountElement.textContent = "Level "+ clickCount;
+      });
+
+      function getRandomIndexes(total, exclude) {
+        let indexes = [];
+        while (indexes.length < 3) {
+          let index = Math.floor(Math.random() * total);
+          if (index !== exclude && !indexes.includes(index)) {
+            indexes.push(index);
+          }
+        }
+        return indexes;
+      }
+    });
+
+
+    // Update the button event listener
+    button.addEventListener('click', function() {
+      if (clickCount >= 100) {
+        showFullScreenImage();
+        return;
+      }
+
+      //wastedElement.classList.remove('show-wasted');
+
+      if (currentIndex >= 0) {
+        images[currentIndex].style.display = 'none';
+        images[prevIndex].style.display = 'none';
+      }
+
+      const newIndexes = getRandomIndexes(images.length, currentIndex);
+      currentIndex = newIndexes[0];
+      prevIndex = newIndexes[1];
+
+      images[currentIndex].style.display = 'block';
+      images[prevIndex].style.display = 'block';
+
+      clickCount++;
+      clickCountElement.textContent = clickCount;
+      button.classList.add('button-clicked');
+      setTimeout(function() {
+        button.classList.remove('button-clicked');
+      }, 200);
+    });
+
+    // Function to show the full-screen image
+    function showFullScreenImage() {
+      document.documentElement.style.overflow = 'hidden'; // Hide scrollbars
+      button.style.display = 'none'; // Hide the button
+
+      const fullScreenImage = document.createElement('img');
+      fullScreenImage.src = 'full_screen_image.jpg';
+      fullScreenImage.alt = 'Full Screen Image';
+      fullScreenImage.style.position = 'fixed';
+      fullScreenImage.style.top = '0';
+      fullScreenImage.style.left = '0';
+      fullScreenImage.style.width = '100%';
+      fullScreenImage.style.height = '100%';
+      fullScreenImage.style.objectFit = 'cover';
+
+      document.body.appendChild(fullScreenImage);
+    }
+
+
+
+
+  </script>
+</body>
+</html>
