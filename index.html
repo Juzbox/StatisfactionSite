@@ -5,10 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GIF Network Visualization</title>
     <style>
+        :root {
+            /* Color variables for easy adjustment */
+            --text-primary: #ffffff;
+            --text-secondary: #cccccc;
+            --text-tertiary: #999999;
+            --text-hover: #ffffff;
+            --label-bg: rgba(255,255,255,0.9);
+            --label-text: rgba(0, 0, 0, 0.85);
+            --description-bg: rgba(0, 0, 0, 0);
+            --description-text: var(--text-primary);
+            --keyword-bg: rgba(255,255,255,0.9);
+            --keyword-text: rgba(0, 0, 0, 0.85);
+            --connection-color: white;
+        }
+        
         body {
             margin: 0;
             padding: 0;
-            font-family: Arial, sans-serif;
+            font-family: Lucida Console, monospace;
             background: linear-gradient(45deg, #000000, #1F2729, #270B2E);
             background-size: 400% 400%;
             animation: backgroundShift 15s ease infinite;
@@ -38,76 +53,75 @@
             filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
         }
         
-        .node-gif:hover {
+/*        .node-gif:hover {
             filter: drop-shadow(0 8px 16px rgba(0,0,0,0.5));
             z-index: 100 !important;
-        }
+        }*/
         
-        .node-gif img {
+        /*.node-gif img {
             display: block;
             max-width: 400px;
             height: auto;
             pointer-events: none;
             mix-blend-mode: multiply;
-        }
+        }*/
         
-        .node-label {
+/*        .node-label {
             position: absolute;
             bottom: -25px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(255,255,255,0.9);
+            background: var(--label-bg);
             padding: 4px 12px;
             border-radius: 12px;
             font-size: 14px;
             font-weight: bold;
-            color: #333;
+            color: var(--label-text);
             white-space: nowrap;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             pointer-events: none;
-        }
-        
-        .node-keywords {
-            position: absolute;
-            top: -25px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(74, 144, 226, 0.9);
-            padding: 3px 10px;
-            border-radius: 10px;
-            font-size: 11px;
-            color: white;
-            white-space: nowrap;
             opacity: 0;
-            transition: opacity 0.2s;
-            pointer-events: none;
-        }
+            transition: opacity 0.3s;
+        }*/
         
-        .node-gif:hover .node-keywords {
+       /* .node-gif:hover .node-label {
             opacity: 1;
-        }
+        }*/
         
         .node-description {
             position: absolute;
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            margin-top: 35px;
-            background: rgba(0, 0, 0, 0.85);
-            padding: 12px 16px;
-            border-radius: 8px;
-            font-size: 13px;
-            line-height: 1.5;
-            color: white;
-            max-width: 300px;
+            
+            bottom: 40px;
+            right: 10px;
+            background: var(--description-bg);
+            padding: 5px 5px;
+            border-radius: 1px;
+            font-size: 18px;
+            line-height: 1.2;
+            color: var(--description-text);
             opacity: 0;
             transition: opacity 0.3s;
-            pointer-events: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            pointer-events: auto;
+            text-shadow: 0 4px 12px rgba(0,0,0,50);
+/*            box-shadow: 0 4px 12px rgba(0,0,0,0.5);*/
             z-index: 200;
+          width: min-content;  /* ← Add this line */
+    
         }
         
+       /* .node-description-title {
+            font-weight: bold;
+            margin-bottom: 6px;
+            font-size: 14px;
+            color: var(--text-hover);
+        }*/
+        
         .node-gif:hover .node-description {
+            opacity: 1;
+        }
+        
+        /* Keep description visible when hovering over it */
+        .node-description:hover {
             opacity: 1;
         }
         
@@ -123,10 +137,23 @@
         }
         
         .connection-line {
-            stroke: white;
+            stroke: var(--connection-color);
             stroke-width: 1;
             opacity: 0.4;
             stroke-dasharray: 1, 2;
+        }
+        
+        .connection-label {
+            position: absolute;
+            background: var(--keyword-bg);
+            color: var(--keyword-text);
+            padding: 3px 8px;
+            border-radius: 8px;
+            font-size: 10px;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 5;
+            opacity: 0.8;
         }
     </style>
 </head>
@@ -155,7 +182,7 @@
             { 
                 id: 3, 
                 filename: '003_innercalling.gif', 
-                title: '003_innercalling', 
+                title: '003_inner calling', 
                 keywords: ['animation', 'pigeon', 'escape', 'defense'],
                 description: 'Layered scans of physical spaces compressed into digital fragments. Reality reconstructed through technological aggregation.'
             },
@@ -200,6 +227,9 @@
             const centerX = containerRect.width / 2;
             const centerY = containerRect.height / 2;
             
+            // Random max-width between 400 and 600
+            const randomMaxWidth = 400 + Math.random() * 200;
+            
             nodes.push({
                 id: gif.id,
                 data: gif,
@@ -210,7 +240,8 @@
                 vx: 0,
                 vy: 0,
                 noiseOffsetX: Math.random() * 1000,
-                noiseOffsetY: Math.random() * 1000
+                noiseOffsetY: Math.random() * 1000,
+                maxWidth: randomMaxWidth
             });
         });
 
@@ -243,24 +274,38 @@
             
             const img = document.createElement('img');
             img.src = `gifs/${node.data.filename}`;
-            img.alt = node.data.title;
+            // img.alt = node.data.title;
             img.draggable = false;
+            img.style.maxWidth = node.maxWidth + 'px';
+            
+            // Store reference to set description width after image loads
+            img.onload = function() {
+                const actualWidth = this.offsetWidth;
+                const descElement = nodeDiv.querySelector('.node-description');
+                if (descElement) {
+                    descElement.style.width = actualWidth + 'px';
+                }
+            };
             
             const label = document.createElement('div');
-            label.className = 'node-label';
+            // label.className = 'node-label';
             label.textContent = node.data.title;
-            
-            const keywords = document.createElement('div');
-            keywords.className = 'node-keywords';
-            keywords.textContent = node.data.keywords.join(', ');
             
             const description = document.createElement('div');
             description.className = 'node-description';
-            description.textContent = node.data.description || '';
+            
+            const descTitle = document.createElement('div');
+            descTitle.className = 'node-description-title';
+            descTitle.textContent = node.data.title;
+            
+            const descText = document.createElement('div');
+            descText.textContent = node.data.description || '';
+            
+            description.appendChild(descTitle);
+            description.appendChild(descText);
             
             nodeDiv.appendChild(img);
-            nodeDiv.appendChild(label);
-            nodeDiv.appendChild(keywords);
+            // nodeDiv.appendChild(label);
             nodeDiv.appendChild(description);
             container.appendChild(nodeDiv);
             
@@ -410,6 +455,10 @@
         // Draw connection lines
         function drawConnections() {
             svg.innerHTML = '';
+            
+            // Remove existing connection labels
+            document.querySelectorAll('.connection-label').forEach(label => label.remove());
+            
             connections.forEach(conn => {
                 const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
                 line.setAttribute('x1', conn.from.x);
@@ -419,6 +468,18 @@
                 line.setAttribute('class', 'connection-line');
                 line.setAttribute('stroke-width', conn.strength * 2);
                 svg.appendChild(line);
+                
+                // Add keyword label at center of line
+                const centerX = (conn.from.x + conn.to.x) / 2;
+                const centerY = (conn.from.y + conn.to.y) / 2;
+                
+                const label = document.createElement('div');
+                label.className = 'connection-label';
+                label.textContent = conn.keywords.join(', ');
+                label.style.left = centerX + 'px';
+                label.style.top = centerY + 'px';
+                label.style.transform = 'translate(-50%, -50%)';
+                container.appendChild(label);
             });
         }
 

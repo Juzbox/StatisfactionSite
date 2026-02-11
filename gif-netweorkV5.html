@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GIF Network Visualization</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(45deg, #000000, #1F2729, #270B2E);
+            background-size: 400% 400%;
+            animation: backgroundShift 15s ease infinite;
+        }
+        
+        @keyframes backgroundShift {
+            0% { background-position: 0% 50%; }
+            33% { background-position: 50% 50%; }
+            66% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        #network-container {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* Node GIF styling */
+        .node-gif {
+            position: absolute;
+            pointer-events: all;
+            cursor: move;
+            transition: filter 0.2s;
+            user-select: none;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+        }
+        
+        .node-gif:hover {
+            filter: drop-shadow(0 8px 16px rgba(0,0,0,0.5));
+            z-index: 100 !important;
+        }
+        
+        .node-gif img {
+            display: block;
+            max-width: 400px;
+            height: auto;
+            pointer-events: none;
+            mix-blend-mode: multiply;
+        }
+        
+        .node-label {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255,255,255,0.9);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            white-space: nowrap;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            pointer-events: none;
+        }
+        
+        .node-keywords {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(74, 144, 226, 0.9);
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            color: white;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+        }
+        
+        .node-gif:hover .node-keywords {
+            opacity: 1;
+        }
+        
+        .node-description {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-top: 35px;
+            background: rgba(0, 0, 0, 0.85);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.5;
+            color: white;
+            max-width: 300px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            z-index: 200;
+        }
+        
+        .node-gif:hover .node-description {
+            opacity: 1;
+        }
+        
+        /* Connection lines */
+        svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .connection-line {
+            stroke: white;
+            stroke-width: 1;
+            opacity: 0.4;
+            stroke-dasharray: 1, 2;
+        }
+    </style>
+</head>
+<body>
+    <div id="network-container">
+        <svg id="connections"></svg>
+    </div>
+
+    <script>
+        // GIF data with keywords
+        const gifData = [
+            { 
+                id: 1, 
+                filename: '001_industrialisis.gif', 
+                title: '001_industrialisis', 
+                keywords: ['animation', 'machinery', 'escape', 'rythm'],
+                description: 'Created using old animation.'
+            },
+            { 
+                id: 2, 
+                filename: '002_bursting.gif', 
+                title: '002_bursting', 
+                keywords: ['animation', 'enchanted', 'breaking'],
+                description: 'Created layering two classics of my childhood.'
+            },
+            { 
+                id: 3, 
+                filename: '003_innercalling.gif', 
+                title: '003_innercalling', 
+                keywords: ['animation', 'pigeon', 'escape', 'defense'],
+                description: 'Layered scans of physical spaces compressed into digital fragments. Reality reconstructed through technological aggregation.'
+            },
+            { 
+                id: 4, 
+                filename: '004_nosy.gif', 
+                title: '004_nosy', 
+                keywords: ['animation', 'linework', 'monarch'],
+                description: 'the king and the mockingbird.'
+            },
+            { 
+                id: 5, 
+                filename: '005_organitious.gif', 
+                title: '005_organitious', 
+                keywords: ['organs', 'farming', 'rythm'],
+                description: 'Exploring new worlds.'
+            },
+            { 
+                id: 6, 
+                filename: '006_gazaplatsen.gif', 
+                title: '006_gazaplatsen', 
+                keywords: ['3D scan', 'Palestine', 'Gothenburg', 'breaking'],
+                description: 'Fighting against erasure.'
+            },
+        ];
+
+        const container = document.getElementById('network-container');
+        const svg = document.getElementById('connections');
+        const containerRect = container.getBoundingClientRect();
+        
+        // Node positions and physics
+        const nodes = [];
+        const nodeElements = {};
+        let physicsEnabled = true;
+        let animationEnabled = false;
+        let draggedNode = null;
+
+        // Initialize nodes with circular layout
+        gifData.forEach((gif, index) => {
+            const angle = (index / gifData.length) * Math.PI * 2;
+            const radius = 200;
+            const centerX = containerRect.width / 2;
+            const centerY = containerRect.height / 2;
+            
+            nodes.push({
+                id: gif.id,
+                data: gif,
+                x: centerX + Math.cos(angle) * radius,
+                y: centerY + Math.sin(angle) * radius,
+                baseX: centerX + Math.cos(angle) * radius,
+                baseY: centerY + Math.sin(angle) * radius,
+                vx: 0,
+                vy: 0,
+                noiseOffsetX: Math.random() * 1000,
+                noiseOffsetY: Math.random() * 1000
+            });
+        });
+
+        // Create connections based on shared keywords
+        const connections = [];
+        for (let i = 0; i < nodes.length; i++) {
+            for (let j = i + 1; j < nodes.length; j++) {
+                const sharedKeywords = nodes[i].data.keywords.filter(
+                    keyword => nodes[j].data.keywords.includes(keyword)
+                );
+                if (sharedKeywords.length > 0) {
+                    connections.push({
+                        from: nodes[i],
+                        to: nodes[j],
+                        strength: sharedKeywords.length,
+                        keywords: sharedKeywords
+                    });
+                }
+            }
+        }
+
+        // Create DOM elements for nodes
+        nodes.forEach(node => {
+            const nodeDiv = document.createElement('div');
+            nodeDiv.className = 'node-gif';
+            nodeDiv.style.left = node.x + 'px';
+            nodeDiv.style.top = node.y + 'px';
+            nodeDiv.style.transform = 'translate(-50%, -50%)';
+            nodeDiv.style.zIndex = '10';
+            
+            const img = document.createElement('img');
+            img.src = `gifs/${node.data.filename}`;
+            img.alt = node.data.title;
+            img.draggable = false;
+            
+            const label = document.createElement('div');
+            label.className = 'node-label';
+            label.textContent = node.data.title;
+            
+            const keywords = document.createElement('div');
+            keywords.className = 'node-keywords';
+            keywords.textContent = node.data.keywords.join(', ');
+            
+            const description = document.createElement('div');
+            description.className = 'node-description';
+            description.textContent = node.data.description || '';
+            
+            nodeDiv.appendChild(img);
+            nodeDiv.appendChild(label);
+            nodeDiv.appendChild(keywords);
+            nodeDiv.appendChild(description);
+            container.appendChild(nodeDiv);
+            
+            nodeElements[node.id] = nodeDiv;
+            
+            // Drag functionality
+            let isDragging = false;
+            let startX, startY, initialX, initialY;
+            
+            nodeDiv.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                draggedNode = node;
+                startX = e.clientX;
+                startY = e.clientY;
+                initialX = node.x;
+                initialY = node.y;
+                nodeDiv.style.cursor = 'grabbing';
+                e.preventDefault();
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging && draggedNode === node) {
+                    const dx = e.clientX - startX;
+                    const dy = e.clientY - startY;
+                    node.x = initialX + dx;
+                    node.y = initialY + dy;
+                    node.baseX = node.x;
+                    node.baseY = node.y;
+                    node.vx = 0;
+                    node.vy = 0;
+                    updateNodePosition(node);
+                    drawConnections();
+                }
+            });
+            
+            document.addEventListener('mouseup', () => {
+                if (isDragging && draggedNode === node) {
+                    isDragging = false;
+                    draggedNode = null;
+                    nodeDiv.style.cursor = 'move';
+                }
+            });
+        });
+
+        // Physics simulation
+        function applyPhysics() {
+            if (!physicsEnabled) return;
+            
+            const centerX = containerRect.width / 2;
+            const centerY = containerRect.height / 2;
+            
+            // Apply forces
+            nodes.forEach(node => {
+                if (draggedNode === node) return;
+                
+                // Repulsion between nodes
+                nodes.forEach(other => {
+                    if (node === other) return;
+                    const dx = node.x - other.x;
+                    const dy = node.y - other.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                    const force = 5000 / (dist * dist);
+                    node.vx += (dx / dist) * force;
+                    node.vy += (dy / dist) * force;
+                });
+                
+                // Spring forces for connections
+                connections.forEach(conn => {
+                    if (conn.from !== node && conn.to !== node) return;
+                    const other = conn.from === node ? conn.to : conn.from;
+                    const dx = other.x - node.x;
+                    const dy = other.y - node.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                    const targetDist = 250;
+                    const force = (dist - targetDist) * 0.001 * conn.strength;
+                    node.vx += (dx / dist) * force;
+                    node.vy += (dy / dist) * force;
+                });
+                
+                // Center gravity
+                const dx = centerX - node.x;
+                const dy = centerY - node.y;
+                node.vx += dx * 0.0001;
+                node.vy += dy * 0.0001;
+                
+                // Damping
+                node.vx *= 0.85;
+                node.vy *= 0.85;
+                
+                // Update position
+                node.x += node.vx;
+                node.y += node.vy;
+                
+                // Update base position for floating
+                node.baseX = node.x;
+                node.baseY = node.y;
+                
+                // Boundary
+                const margin = 150;
+                node.x = Math.max(margin, Math.min(containerRect.width - margin, node.x));
+                node.y = Math.max(margin, Math.min(containerRect.height - margin, node.y));
+            });
+        }
+
+        // Noise function for floating effect
+        function noise(x) {
+            const X = Math.floor(x) & 255;
+            x -= Math.floor(x);
+            const u = fade(x);
+            return lerp(u, grad(X, x), grad(X + 1, x - 1)) * 2 - 1;
+        }
+        
+        function fade(t) {
+            return t * t * t * (t * (t * 6 - 15) + 10);
+        }
+        
+        function lerp(t, a, b) {
+            return a + t * (b - a);
+        }
+        
+        function grad(hash, x) {
+            return (hash & 1) === 0 ? x : -x;
+        }
+
+        // Apply floating effect
+        function applyFloating() {
+            if (!animationEnabled || physicsEnabled) return;
+            
+            const time = Date.now() * 0.0003;
+            
+            nodes.forEach(node => {
+                if (draggedNode === node) return;
+                const noiseX = noise(time + node.noiseOffsetX) * 3;
+                const noiseY = noise(time + node.noiseOffsetY) * 3;
+                node.x = node.baseX + noiseX;
+                node.y = node.baseY + noiseY;
+            });
+        }
+
+        // Update node visual position
+        function updateNodePosition(node) {
+            const element = nodeElements[node.id];
+            element.style.left = node.x + 'px';
+            element.style.top = node.y + 'px';
+        }
+
+        // Draw connection lines
+        function drawConnections() {
+            svg.innerHTML = '';
+            connections.forEach(conn => {
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', conn.from.x);
+                line.setAttribute('y1', conn.from.y);
+                line.setAttribute('x2', conn.to.x);
+                line.setAttribute('y2', conn.to.y);
+                line.setAttribute('class', 'connection-line');
+                line.setAttribute('stroke-width', conn.strength * 2);
+                svg.appendChild(line);
+            });
+        }
+
+        // Animation loop
+        function animate() {
+            if (physicsEnabled) {
+                applyPhysics();
+            } else {
+                applyFloating();
+            }
+            
+            nodes.forEach(updateNodePosition);
+            drawConnections();
+            
+            requestAnimationFrame(animate);
+        }
+
+        // Stabilize physics first
+        let stabilizationCounter = 0;
+        const stabilizationInterval = setInterval(() => {
+            applyPhysics();
+            nodes.forEach(node => {
+                node.baseX = node.x;
+                node.baseY = node.y;
+                updateNodePosition(node);
+            });
+            drawConnections();
+            stabilizationCounter++;
+            if (stabilizationCounter > 100) {
+                clearInterval(stabilizationInterval);
+                physicsEnabled = false;
+                setTimeout(() => {
+                    animationEnabled = true;
+                    animate();
+                }, 500);
+            }
+        }, 20);
+    </script>
+</body>
+</html>
