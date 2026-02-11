@@ -3,49 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Floating GIF Visualization</title>
+    <title>GIFs Gallery</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            overflow: hidden;
-            margin: 0;
-        }
-        .gif-container {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-            overflow: hidden;
-        }
         .floating-gif {
             position: absolute;
-            animation: float 5s infinite alternate;
+            width: 100px;
+            animation: float 3s ease-in-out infinite;
         }
         @keyframes float {
-            0% { transform: translateY(0); }
-            100% { transform: translateY(-50px); }
+            0% {
+                transform: translatey(0);
+            }
+            50% {
+                transform: translatey(-30px);
+            }
+            100% {
+                transform: translatey(0);
+            }
         }
     </style>
 </head>
 <body>
-    <div class="gif-container">
-        <img src="your-gif-url.gif" alt="Floating GIF" class="floating-gif">
-    </div>
+    <h1>Welcome to the GIF Gallery!</h1>
+    <div id="gif-container"></div>
     <script>
-        const keywords = ['keyword1', 'keyword2', 'keyword3'];
-        const gifContainer = document.querySelector('.gif-container');
+        const container = document.getElementById('gif-container');
 
-        function createFloatingGIF() {
-            const gif = document.createElement('img');
-            gif.src = 'your-gif-url.gif';
-            gif.classList.add('floating-gif');
-            gif.style.left = Math.random() * 100 + '%';
-            gif.style.top = Math.random() * 100 + '%';
-            gifContainer.appendChild(gif);
+        // Function to load GIF images dynamically
+        function loadGifs() {
+            const gifFolder = 'assets/'; // folder containing GIFs
+            const gifNames = ['image1.gif', 'image2.gif', 'image3.gif']; // Add your GIF filenames here
+
+            gifNames.forEach((gif, index) => {
+                const img = document.createElement('img');
+                img.src = gifFolder + gif;
+                img.className = 'floating-gif';
+                img.style.left = (Math.random() * window.innerWidth) + 'px';
+                img.style.top = (Math.random() * window.innerHeight) + 'px';
+                container.appendChild(img);
+            });
         }
 
-        keywords.forEach(keyword => {
-            createFloatingGIF();
-        });
+        loadGifs();
     </script>
 </body>
 </html>
