@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GIF Network Visualization</title>
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        
+        #network-container {
+            width: 100%;
+            height: 80vh;
+            border: 1px solid #ddd;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .info {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #666;
+        }
+        
+        #gif-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            display: none;
+            z-index: 1000;
+            max-width: 90%;
+            max-height: 90%;
+        }
+        
+        #gif-popup img {
+            max-width: 500px;
+            max-height: 500px;
+            display: block;
+        }
+        
+        #gif-popup .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        
+        #gif-popup h3 {
+            margin-top: 10px;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        
+        #gif-popup .keywords {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+    <h1>GIF Network Visualization</h1>
+    <div class="info">
+        Click on any node to view the full GIF. Connected nodes share keywords.<br>
+        <button id="toggle-physics" style="margin-top: 10px; padding: 8px 16px; cursor: pointer; background: #4A90E2; color: white; border: none; border-radius: 4px;">
+            Freeze Network (for easier dragging)
+        </button>
+    </div>
+    
+    <div id="network-container"></div>
+    
+    <div id="overlay"></div>
+    <div id="gif-popup">
+        <button class="close-btn" onclick="closePopup()">×</button>
+        <img id="popup-gif" src="" alt="GIF">
+        <h3 id="popup-title"></h3>
+        <div class="keywords" id="popup-keywords"></div>
+    </div>
+
+    <script>
+        // GIF data with keywords
+        const gifData = [
+            { id: 1, filename: 'agora.gif', title: 'Agoraverse', keywords: ['virtual', 'turfu', 'world'] },
+            { id: 2, filename: 'pink.gif', title: 'Turfuverse', keywords: ['virtual', 'turfu', 'city'] },
+            { id: 3, filename: 'WAM.gif', title: 'Aggregate', keywords: ['city', '3Dscan', 'world'] },
+            { id: 4, filename: 'WAM2.gif', title: 'whatamess', keywords: ['glitch', 'city', '3Dscan'] },
+            { id: 5, filename: 'subvert.gif', title: 'The King and the Mockingbird', keywords: ['city', 'police', 'turfu'] },
+           
+        ];
+
+        // Create nodes for vis.js
+        const nodes = gifData.map(gif => ({
+            id: gif.id,
+            label: gif.title,
+            image: `gifs/${gif.filename}`,
+            shape: 'circularImage',
+            size: 30,
+            borderWidth: 2,
+            color: {
+                border: '#4A90E2',
+                highlight: {
+                    border: '#ff6b6b'
+                }
+            },
+            data: gif
+        }));
+
+        // Create edges based on shared keywords
+        const edges = [];
+        for (let i = 0; i < gifData.length; i++) {
+            for (let j = i + 1; j < gifData.length; j++) {
+                const sharedKeywords = gifData[i].keywords.filter(
+                    keyword => gifData[j].keywords.includes(keyword)
+                );
+                
+                if (sharedKeywords.length > 0) {
+                    edges.push({
+                        from: gifData[i].id,
+                        to: gifData[j].id,
+                        value: sharedKeywords.length,
+                        title: `Shared: ${sharedKeywords.join(', ')}`,
+                        color: {
+                            color: '#97C2FC',
+                            highlight: '#ff6b6b'
+                        }
+                    });
+                }
+            }
+        }
+
+        // Create network
+        const container = document.getElementById('network-container');
+        const data = {
+            nodes: new vis.DataSet(nodes),
+            edges: new vis.DataSet(edges)
+        };
+
+        const options = {
+            nodes: {
+                borderWidthSelected: 4,
+                font: {
+                    size: 14,
+                    color: '#333'
+                }
+            },
+            edges: {
+                width: 2,
+                smooth: {
+                    type: 'continuous',
+                    roundness: 0.5
+                },
+                scaling: {
+                    min: 1,
+                    max: 5
+                }
+            },
+            physics: {
+                enabled: true,  // Physics enabled for initial layout
+                stabilization: {
+                    enabled: true,
+                    iterations: 200
+                },
+                barnesHut: {
+                    gravitationalConstant: -2000,
+                    centralGravity: 0.3,
+                    springLength: 150,
+                    springConstant: 0.04
+                }
+            },
+            interaction: {
+                hover: true,
+                tooltipDelay: 200,
+                dragNodes: true,  // Nodes are draggable
+                dragView: true    // Canvas is also draggable
+            }
+        };
+
+        const network = new vis.Network(container, data, options);
+
+        // Toggle physics on/off for easier dragging
+        let physicsEnabled = true;
+        document.getElementById('toggle-physics').addEventListener('click', function() {
+            physicsEnabled = !physicsEnabled;
+            network.setOptions({ physics: { enabled: physicsEnabled } });
+            this.textContent = physicsEnabled ? 'Freeze Network (for easier dragging)' : 'Unfreeze Network';
+            this.style.background = physicsEnabled ? '#4A90E2' : '#ff6b6b';
+        });
+
+        // Handle node clicks
+        network.on('click', function(params) {
+            if (params.nodes.length > 0) {
+                const nodeId = params.nodes[0];
+                const nodeData = gifData.find(gif => gif.id === nodeId);
+                showPopup(nodeData);
+            }
+        });
+
+        function showPopup(gifInfo) {
+            document.getElementById('popup-gif').src = `gifs/${gifInfo.filename}`;
+            document.getElementById('popup-title').textContent = gifInfo.title;
+            document.getElementById('popup-keywords').textContent = `Keywords: ${gifInfo.keywords.join(', ')}`;
+            document.getElementById('gif-popup').style.display = 'block';
+            document.getElementById('overlay').style.display = 'block';
+        }
+
+        function closePopup() {
+            document.getElementById('gif-popup').style.display = 'none';
+            document.getElementById('overlay').style.display = 'none';
+        }
+
+        // Close popup when clicking overlay
+        document.getElementById('overlay').addEventListener('click', closePopup);
+
+        // Close popup with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closePopup();
+            }
+        });
+    </script>
+</body>
+</html>
