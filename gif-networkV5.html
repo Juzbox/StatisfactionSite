@@ -51,7 +51,6 @@
             transition: filter 0.2s;
             user-select: none;
             filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
-            touch-action: none; /* Prevents default touch behaviors like scrolling */
         }
         
 /*        .node-gif:hover {
@@ -110,16 +109,6 @@
     
         }
         
-        .node-description a {
-            color: var(--text-hover);
-            text-decoration: underline;
-            cursor: pointer;
-        }
-        
-        .node-description a:hover {
-            color: var(--text-secondary);
-        }
-        
        /* .node-description-title {
             font-weight: bold;
             margin-bottom: 6px;
@@ -166,44 +155,11 @@
             z-index: 5;
             opacity: 0.8;
         }
-        
-        /* Site info box */
-        #site-info {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: var(--description-bg);
-            padding: 12px 16px;
-            border-radius: 4px;
-            font-size: 13px;
-            line-height: 1.5;
-            color: var(--text-primary);
-            text-shadow: 0 2px 8px rgba(0,0,0,0.8);
-            z-index: 300;
-            text-align: right;
-        }
-        
-        #site-info-title {
-            font-weight: bold;
-            font-size: 16px;
-            margin-bottom: 4px;
-            color: var(--text-hover);
-        }
-        
-        #site-info-description {
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
     </style>
 </head>
 <body>
     <div id="network-container">
         <svg id="connections"></svg>
-    </div>
-    
-    <div id="site-info">
-        <div id="site-info-title">satisfriction</div>
-        <div id="site-info-description">a vj sketchbook by hugo pilate</div>
     </div>
 
     <script>
@@ -214,7 +170,7 @@
                 filename: '001_industrialisis.gif', 
                 title: '001_industrialisis', 
                 keywords: ['animation', 'machinery', 'escape', 'rythm'],
-                description: 'Created using <a href="https://www.hugopilate.com" target="_blank">old animation</a> and some <a href="https://www.example.com" target="_blank">new techniques</a>.'
+                description: 'Created using old animation.'
             },
             { 
                 id: 2, 
@@ -343,8 +299,7 @@
             descTitle.textContent = node.data.title;
             
             const descText = document.createElement('div');
-            // Use innerHTML to support inline HTML links
-            descText.innerHTML = node.data.description || '';
+            descText.textContent = node.data.description || '';
             
             description.appendChild(descTitle);
             description.appendChild(descText);
@@ -360,14 +315,7 @@
             let isDragging = false;
             let startX, startY, initialX, initialY;
             
-            // Mouse events
             nodeDiv.addEventListener('mousedown', (e) => {
-                // Bring to front immediately
-                Object.values(nodeElements).forEach(el => {
-                    el.style.zIndex = '10';
-                });
-                nodeDiv.style.zIndex = '100';
-                
                 isDragging = true;
                 draggedNode = node;
                 startX = e.clientX;
@@ -398,48 +346,6 @@
                     isDragging = false;
                     draggedNode = null;
                     nodeDiv.style.cursor = 'move';
-                }
-            });
-            
-            // Touch events for mobile
-            nodeDiv.addEventListener('touchstart', (e) => {
-                // Bring to front immediately
-                Object.values(nodeElements).forEach(el => {
-                    el.style.zIndex = '10';
-                });
-                nodeDiv.style.zIndex = '100';
-                
-                isDragging = true;
-                draggedNode = node;
-                const touch = e.touches[0];
-                startX = touch.clientX;
-                startY = touch.clientY;
-                initialX = node.x;
-                initialY = node.y;
-                e.preventDefault();
-            }, { passive: false });
-            
-            document.addEventListener('touchmove', (e) => {
-                if (isDragging && draggedNode === node) {
-                    const touch = e.touches[0];
-                    const dx = touch.clientX - startX;
-                    const dy = touch.clientY - startY;
-                    node.x = initialX + dx;
-                    node.y = initialY + dy;
-                    node.baseX = node.x;
-                    node.baseY = node.y;
-                    node.vx = 0;
-                    node.vy = 0;
-                    updateNodePosition(node);
-                    drawConnections();
-                    e.preventDefault();
-                }
-            }, { passive: false });
-            
-            document.addEventListener('touchend', () => {
-                if (isDragging && draggedNode === node) {
-                    isDragging = false;
-                    draggedNode = null;
                 }
             });
         });
